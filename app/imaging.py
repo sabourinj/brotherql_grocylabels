@@ -19,7 +19,7 @@ def createBarcode(text: str, type: str):
         case _:
             return createDatamatrix(text)
 
-def createLabelImage(labelSize : tuple, endlessMargin : int, text : str, textFont : ImageFont, textFontSize : int, textMaxLines : int, barcode : Image, dates : list, dateFont : ImageFont):
+def createLabelImage(labelSize : tuple, endlessMargin : int, text : str, textFont : ImageFont, textFontSize : int, textMaxLines : int, barcode : Image, dates : list, dateFont : ImageFont, rightMargin : int = 0):
     (width, height) = labelSize
     # default line spacing used by multiline_text, doesn't seem to have an effect if changed though but we need to take into account
     lineSpacing = 4
@@ -74,10 +74,11 @@ def createLabelImage(labelSize : tuple, endlessMargin : int, text : str, textFon
         for i, dateText in enumerate(reversed(dates)):
             (_, ddTop, ddRight, _) = dateFont.getbbox(dateText)
             y = bottomLineY - i * dateLinePitch
-            datePositions.append((dateText, [label.size[0] - ddRight, y]))
+            datePositions.append((dateText, [label.size[0] - rightMargin - ddRight, y]))
             datesTop = min(datesTop, y + ddTop)
 
-    nameMaxWidth = width - barcode.size[0]
+    # keep text clear of the right edge, printers don't line up exactly with die-cut labels
+    nameMaxWidth = width - barcode.size[0] - rightMargin
     # use fewer name lines if the full amount would run into the dates
     nameLines = textMaxLines
     while True:

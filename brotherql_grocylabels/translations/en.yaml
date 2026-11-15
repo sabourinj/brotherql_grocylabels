@@ -26,6 +26,9 @@ configuration:
   endless_margin:
     name: Endless label margin
     description: Top and bottom margin for endless labels.
+  right_margin:
+    name: Right margin
+    description: Space in dots (about 12 per mm) kept between the text and the right edge of the label. Raise it if the dates run off the edge.
   purchased_date_prefix:
     name: Purchased date prefix
     description: Text printed before purchased_date. Leave blank to print the date on its own.

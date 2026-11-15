@@ -1,3 +1,7 @@
+# 0.8.1
+
+- Added `RIGHT_MARGIN` (default 24 dots, about 2mm) so the dates and name stay clear of the right edge of the label
+
 # 0.8.0
 
 - Added `DUE_DATE_PREFIX` to replace Grocy's `DD:` before the due date (add-on default `Due:`)

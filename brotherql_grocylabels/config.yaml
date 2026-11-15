@@ -1,5 +1,5 @@
 name: Brother QL Grocy Labels
-version: "0.8.0"
+version: "0.8.1"
 slug: brotherql_grocylabels
 description: Print Grocy labels on a Brother QL label printer
 url: https://github.com/sabourinj/brotherql_grocylabels
@@ -34,6 +34,7 @@ options:
   due_date_font: NotoSerif-Regular.ttf
   due_date_font_size: 30
   endless_margin: 10
+  right_margin: 24
   purchased_date_prefix: "Purchased:"
   opened_date_prefix: "Opened:"
   due_date_prefix: "Due:"
@@ -49,6 +50,7 @@ schema:
   due_date_font: list(NotoSerif-Regular.ttf|NotoSans-Regular.ttf)
   due_date_font_size: int(8,200)
   endless_margin: int(0,100)
+  right_margin: int(0,200)
   purchased_date_prefix: str?
   opened_date_prefix: str?
   due_date_prefix: str?
