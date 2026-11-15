@@ -1,5 +1,5 @@
 name: Brother QL Grocy Labels
-version: "0.7.0"
+version: "0.8.0"
 slug: brotherql_grocylabels
 description: Print Grocy labels on a Brother QL label printer
 url: https://github.com/sabourinj/brotherql_grocylabels
@@ -36,6 +36,7 @@ options:
   endless_margin: 10
   purchased_date_prefix: "Purchased:"
   opened_date_prefix: "Opened:"
+  due_date_prefix: "Due:"
   grocy_lookup_delay: 3
 schema:
   label_size: str
@@ -50,6 +51,7 @@ schema:
   endless_margin: int(0,100)
   purchased_date_prefix: str?
   opened_date_prefix: str?
+  due_date_prefix: str?
   grocy_url: url?
   grocy_api_key: password?
   grocy_lookup_delay: int(0,30)

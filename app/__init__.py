@@ -1,4 +1,5 @@
 import json
+import re
 import threading
 import time
 from io import BytesIO
@@ -25,6 +26,7 @@ if path.isfile(OPTIONS_FILE):
     # blank optional options are left out of the file, which means print the date with no prefix
     environ.setdefault("PURCHASED_DATE_PREFIX", "")
     environ.setdefault("OPENED_DATE_PREFIX", "")
+    environ.setdefault("DUE_DATE_PREFIX", "")
 
 LABEL_SIZE = getenv("LABEL_SIZE", "62x29")
 PRINTER_MODEL = getenv("PRINTER_MODEL", "QL-500")
@@ -38,6 +40,10 @@ DUE_DATE_FONT_SIZE = int(getenv("DUE_DATE_FONT_SIZE", "30"))
 ENDLESS_MARGIN = int(getenv("ENDLESS_MARGIN", "10"))
 PURCHASED_DATE_PREFIX = getenv("PURCHASED_DATE_PREFIX", "Purchased:").strip()
 OPENED_DATE_PREFIX = getenv("OPENED_DATE_PREFIX", "Opened:").strip()
+# unset means print due_date exactly as given (Grocy sends "DD: <date>")
+DUE_DATE_PREFIX = getenv("DUE_DATE_PREFIX")
+if DUE_DATE_PREFIX is not None:
+    DUE_DATE_PREFIX = DUE_DATE_PREFIX.strip()
 # optional, lets labels use the stock entry as Grocy has it after the webhook (see README)
 GROCY_URL = getenv("GROCY_URL", "").strip()
 GROCY_API_KEY = getenv("GROCY_API_KEY", "").strip()
@@ -91,6 +97,18 @@ def lookupStockEntry(params):
         app.logger.warning("Grocy lookup failed, using the webhook data instead: %s", e)
         return None
 
+def formatDueDate(dueDate, entry):
+    """Swap Grocy's "DD: <date>" prefix for DUE_DATE_PREFIX, when it's set."""
+    if DUE_DATE_PREFIX is None or not dueDate:
+        return dueDate
+    match = re.search(r"\d{4}-\d{2}-\d{2}", dueDate)
+    # no date in the text (e.g. just "DD"), fall back to the stock entry's due date
+    date = match.group(0) if match else grocy.text(entry.get("best_before_date"))[:10]
+    if not date:
+        # not something we understand, leave it alone
+        return dueDate
+    return ' '.join(filter(None, [DUE_DATE_PREFIX, date]))
+
 def createLabel(params, freshEntry = None):
     entry = freshEntry or params["stockEntry"]
     purchasedDate = params["purchasedDate"] or grocy.text(entry.get("purchased_date"))[:10]
@@ -102,8 +120,9 @@ def createLabel(params, freshEntry = None):
         dates.append(' '.join(filter(None, [PURCHASED_DATE_PREFIX, purchasedDate])))
     if openedDate:
         dates.append(' '.join(filter(None, [OPENED_DATE_PREFIX, openedDate])))
-    if params["dueDate"]:
-        dates.append(params["dueDate"])
+    dueDate = formatDueDate(params["dueDate"], entry)
+    if dueDate:
+        dates.append(dueDate)
 
     return createLabelImage(label_spec.dots_printable, ENDLESS_MARGIN, params["name"], nameFont, NAME_FONT_SIZE, NAME_MAX_LINES, createBarcode(params["barcode"], BARCODE_FORMAT), dates, ddFont)
 
