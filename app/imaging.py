@@ -19,13 +19,20 @@ def createBarcode(text: str, type: str):
         case _:
             return createDatamatrix(text)
 
-def createLabelImage(labelSize : tuple, endlessMargin : int, text : str, textFont : ImageFont, textFontSize : int, textMaxLines : int, barcode : Image, dueDate : str, dueDateFont : ImageFont):
+def createLabelImage(labelSize : tuple, endlessMargin : int, text : str, textFont : ImageFont, textFontSize : int, textMaxLines : int, barcode : Image, dates : list, dateFont : ImageFont):
     (width, height) = labelSize
     # default line spacing used by multiline_text, doesn't seem to have an effect if changed though but we need to take into account
     lineSpacing = 4
     # margin to use for label
     marginTop = 0
     marginBottom = 0
+
+    # date lines are stacked in the bottom right corner, the last one sits at the very bottom
+    dates = [d for d in dates if d]
+    # distance between the baselines of stacked date lines
+    dateLinePitch = dateFont.size + lineSpacing
+    # height taken by the date lines above the bottom one
+    datesExtraHeight = dateLinePitch * (len(dates) - 1) if dates else 0
 
     # for endless labels with a height of zero
     if height == 0:
@@ -36,10 +43,10 @@ def createLabelImage(labelSize : tuple, endlessMargin : int, text : str, textFon
         marginTop = endlessMargin - tTop
         # regular bottom margin
         marginBottom = endlessMargin
-        # make space for the due date
-        if dueDate:
-            (_, _, _, ddBottom) = dueDateFont.getbbox(dueDate)
-            height += ddBottom
+        # make space for the dates
+        if dates:
+            (_, _, _, ddBottom) = dateFont.getbbox(dates[-1])
+            height += ddBottom + datesExtraHeight
 
     # increase the size of the barcode if space permits
     if (barcode.size[1] * 8) < height:
@@ -58,8 +65,29 @@ def createLabelImage(labelSize : tuple, endlessMargin : int, text : str, textFon
     
     draw = ImageDraw.Draw(label)
 
-    (nameText, nameTextWidth) = wrapText(text, textFont, width - barcode.size[0], textMaxLines)
+    # work out where each date line goes, bottom line first, so the name can avoid them
+    datePositions = []
+    datesTop = label.size[1]
+    if dates:
+        (_, _, _, ddBottom) = dateFont.getbbox(dates[-1])
+        bottomLineY = label.size[1] - ddBottom - marginBottom
+        for i, dateText in enumerate(reversed(dates)):
+            (_, ddTop, ddRight, _) = dateFont.getbbox(dateText)
+            y = bottomLineY - i * dateLinePitch
+            datePositions.append((dateText, [label.size[0] - ddRight, y]))
+            datesTop = min(datesTop, y + ddTop)
+
     nameMaxWidth = width - barcode.size[0]
+    # use fewer name lines if the full amount would run into the dates
+    nameLines = textMaxLines
+    while True:
+        (nameText, nameTextWidth) = wrapText(text, textFont, nameMaxWidth, nameLines)
+        if not dates or nameLines <= 1:
+            break
+        (_, _, _, nameBottom) = draw.multiline_textbbox((0, marginTop), nameText, font = textFont, spacing = lineSpacing)
+        if nameBottom + lineSpacing <= datesTop:
+            break
+        nameLines -= 1
     nameLeftMargin = (nameMaxWidth - nameTextWidth) / 2
 
     draw.multiline_text(
@@ -71,13 +99,12 @@ def createLabelImage(labelSize : tuple, endlessMargin : int, text : str, textFon
         spacing = lineSpacing
     )
 
-    if dueDate:
-        (_, _, ddRight, ddBottom) = dueDateFont.getbbox(dueDate)
+    for (dateText, position) in datePositions:
         draw.text(
-            [label.size[0] - ddRight, label.size[1] - ddBottom - marginBottom],
-            dueDate,
+            position,
+            dateText,
             fill = ImageColor.getrgb("#000"),
-            font = dueDateFont
+            font = dateFont
         )
 
     return label

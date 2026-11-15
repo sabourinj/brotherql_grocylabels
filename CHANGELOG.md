@@ -1,3 +1,10 @@
+# Unreleased
+
+- Added optional `purchased_date` and `opened_date` parameters, printed above the due date
+- Added `PURCHASED_DATE_PREFIX` and `OPENED_DATE_PREFIX` settings
+- Name text uses fewer lines on die-cut labels when it would otherwise overlap the dates
+- Fixed `DUE_DATE_FONT` being read from `NAME_FONT`
+
 # 0.5.0
 
 - Updated python dependencies (Flask 3.1, Pillow 13, qrcode 8, gunicorn 26)

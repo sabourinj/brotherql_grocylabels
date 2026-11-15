@@ -36,9 +36,11 @@ The label size and printer are configured via environmental variables. You can a
 | NAME_FONT          | NotoSerif-Regular.ttf | The file name of the font in the fonts directory                                              |
 | NAME_FONT_SIZE     | 48                    | The size of that font                                                                         |
 | NAME_MAX_LINES     | 4                     | The maximum number of lines to use for the name                                               |
-| DUE_DATE_FONT      | NotoSerif-Regular.ttf | The file name of the font in the fonts directory                                              |
+| DUE_DATE_FONT      | NotoSerif-Regular.ttf | The file name of the font in the fonts directory, used for all dates                          |
 | DUE_DATE_FONT_SIZE | 30                    | The size of that font                                                                         |
 | ENDLESS_MARGIN     | 10                    | The top & bottom margin to add when using endless labels                                      |
+| PURCHASED_DATE_PREFIX | `Purchased: `      | Text printed before `purchased_date`. Set it empty to print the value as-is                   |
+| OPENED_DATE_PREFIX | `Opened: `            | Text printed before `opened_date`. Set it empty to print the value as-is                      |
 
 Included fonts are `NotoSans-Regular.ttf` and `NotoSerif-Regular.ttf`
 
@@ -63,8 +65,16 @@ POST or GET accepted.
 | recipe    | name                                |
 | grocycode | the barcode                         |
 | due_date  | the text at the bottom of the label |
+| purchased_date | purchased date, printed above the due date with `PURCHASED_DATE_PREFIX` in front |
+| opened_date    | opened date, printed above the due date with `OPENED_DATE_PREFIX` in front       |
 
 The name will use whichever parameter is given.
+
+The dates are stacked in the bottom right corner in the order purchased, opened, due, with the due date always at the bottom. Any that are missing are left out.
+On die-cut labels the name will use fewer lines if needed so it doesn't run into the dates.
+
+Grocy's built-in label webhook only sends `due_date`, so `purchased_date` and `opened_date` need to come from your own call to `/print` (e.g. a script or automation using the Grocy API).
+For example: `/print?product=Milk&grocycode=grcy:p:1&due_date=DD:%202026-11-21&purchased_date=2026-11-14&opened_date=2026-11-15`
 
 ## Running
 
