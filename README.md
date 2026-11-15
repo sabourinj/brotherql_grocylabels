@@ -53,6 +53,7 @@ The label size and printer are configured via environmental variables. You can a
 | DUE_DATE_FONT      | NotoSerif-Regular.ttf | The file name of the font in the fonts directory, used for all dates                          |
 | DUE_DATE_FONT_SIZE | 30                    | The size of that font                                                                         |
 | ENDLESS_MARGIN     | 10                    | The top & bottom margin to add when using endless labels                                      |
+| RIGHT_MARGIN       | 24                    | Dots (about 12 per mm) kept clear between the name/dates and the right edge of the label      |
 | PURCHASED_DATE_PREFIX | `Purchased:`       | Text printed (plus a space) before `purchased_date`. Set it empty to print the value as-is    |
 | OPENED_DATE_PREFIX | `Opened:`             | Text printed (plus a space) before `opened_date`. Set it empty to print the value as-is       |
 | DUE_DATE_PREFIX    | *(unset)*             | Replaces the prefix on `due_date` (Grocy sends `DD: <date>`), plus a space. Unset prints `due_date` as given, empty prints just the date |

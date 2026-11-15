@@ -38,6 +38,8 @@ NAME_MAX_LINES = int(getenv("NAME_MAX_LINES", "4"))
 DUE_DATE_FONT =  getenv("DUE_DATE_FONT", "NotoSerif-Regular.ttf")
 DUE_DATE_FONT_SIZE = int(getenv("DUE_DATE_FONT_SIZE", "30"))
 ENDLESS_MARGIN = int(getenv("ENDLESS_MARGIN", "10"))
+# about 2mm at 300dpi
+RIGHT_MARGIN = int(getenv("RIGHT_MARGIN", "24"))
 PURCHASED_DATE_PREFIX = getenv("PURCHASED_DATE_PREFIX", "Purchased:").strip()
 OPENED_DATE_PREFIX = getenv("OPENED_DATE_PREFIX", "Opened:").strip()
 # unset means print due_date exactly as given (Grocy sends "DD: <date>")
@@ -124,7 +126,7 @@ def createLabel(params, freshEntry = None):
     if dueDate:
         dates.append(dueDate)
 
-    return createLabelImage(label_spec.dots_printable, ENDLESS_MARGIN, params["name"], nameFont, NAME_FONT_SIZE, NAME_MAX_LINES, createBarcode(params["barcode"], BARCODE_FORMAT), dates, ddFont)
+    return createLabelImage(label_spec.dots_printable, ENDLESS_MARGIN, params["name"], nameFont, NAME_FONT_SIZE, NAME_MAX_LINES, createBarcode(params["barcode"], BARCODE_FORMAT), dates, ddFont, RIGHT_MARGIN)
 
 # one label at a time, the delayed prints run on their own threads
 printLock = threading.Lock()
