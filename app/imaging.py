@@ -19,7 +19,7 @@ def createBarcode(text: str, type: str):
         case _:
             return createDatamatrix(text)
 
-def createLabelImage(labelSize : tuple, endlessMargin : int, text : str, textFont : ImageFont, textFontSize : int, textMaxLines : int, barcode : Image, dates : list, dateFont : ImageFont, rightMargin : int = 0):
+def createLabelImage(labelSize : tuple, endlessMargin : int, text : str, textFont : ImageFont, textFontSize : int, textMaxLines : int, barcode : Image, dates : list, dateFont : ImageFont, rightMargin : int = 0, boldDates : bool = False):
     (width, height) = labelSize
     # default line spacing used by multiline_text, doesn't seem to have an effect if changed though but we need to take into account
     lineSpacing = 4
@@ -28,7 +28,11 @@ def createLabelImage(labelSize : tuple, endlessMargin : int, text : str, textFon
     marginBottom = 0
 
     # date lines are stacked in the bottom right corner, the last one sits at the very bottom
-    dates = [d for d in dates if d]
+    # each is a (prefix, date) pair or plain text, the date part can be drawn bold
+    dates = [d if isinstance(d, tuple) else (d, "") for d in dates]
+    dates = [(p or "", v or "") for (p, v) in dates if p or v]
+    # there's no bold font included, outlining the text in the same colour thickens it instead
+    boldWidth = max(1, round(dateFont.size / 30)) if boldDates else 0
     # distance between the baselines of stacked date lines
     dateLinePitch = dateFont.size + lineSpacing
     # height taken by the date lines above the bottom one
@@ -45,7 +49,7 @@ def createLabelImage(labelSize : tuple, endlessMargin : int, text : str, textFon
         marginBottom = endlessMargin
         # make space for the dates
         if dates:
-            (_, _, _, ddBottom) = dateFont.getbbox(dates[-1])
+            (_, _, _, ddBottom) = dateLineBox(dates[-1], dateFont, boldWidth)
             height += ddBottom + datesExtraHeight
 
     # increase the size of the barcode if space permits
@@ -69,12 +73,12 @@ def createLabelImage(labelSize : tuple, endlessMargin : int, text : str, textFon
     datePositions = []
     datesTop = label.size[1]
     if dates:
-        (_, _, _, ddBottom) = dateFont.getbbox(dates[-1])
+        (_, _, _, ddBottom) = dateLineBox(dates[-1], dateFont, boldWidth)
         bottomLineY = label.size[1] - ddBottom - marginBottom
-        for i, dateText in enumerate(reversed(dates)):
-            (_, ddTop, ddRight, _) = dateFont.getbbox(dateText)
+        for i, line in enumerate(reversed(dates)):
+            (_, ddTop, ddRight, _) = dateLineBox(line, dateFont, boldWidth)
             y = bottomLineY - i * dateLinePitch
-            datePositions.append((dateText, [label.size[0] - rightMargin - ddRight, y]))
+            datePositions.append((line, [label.size[0] - rightMargin - ddRight, y]))
             datesTop = min(datesTop, y + ddTop)
 
     # keep text clear of the right edge, printers don't line up exactly with die-cut labels
@@ -100,15 +104,31 @@ def createLabelImage(labelSize : tuple, endlessMargin : int, text : str, textFon
         spacing = lineSpacing
     )
 
-    for (dateText, position) in datePositions:
-        draw.text(
-            position,
-            dateText,
-            fill = ImageColor.getrgb("#000"),
-            font = dateFont
-        )
+    black = ImageColor.getrgb("#000")
+    for ((prefix, value), (x, y)) in datePositions:
+        prefixText = datePrefixText(prefix, value)
+        if prefixText:
+            draw.text([x, y], prefixText, fill = black, font = dateFont)
+        if value:
+            draw.text([x + dateFont.getlength(prefixText), y], value, fill = black, font = dateFont, stroke_width = boldWidth, stroke_fill = black)
 
     return label
+
+def datePrefixText(prefix : str, value : str):
+    return prefix + " " if prefix and value else prefix
+
+def dateLineBox(line : tuple, font : ImageFont, boldWidth : int):
+    """Bounding box of a (prefix, date) line drawn from the origin, the date part can be outlined to make it bold."""
+    (prefix, value) = line
+    prefixText = datePrefixText(prefix, value)
+    boxes = []
+    if prefixText:
+        boxes.append(font.getbbox(prefixText))
+    if value:
+        offset = font.getlength(prefixText)
+        (left, top, right, bottom) = font.getbbox(value, stroke_width = boldWidth)
+        boxes.append((left + offset, top, right + offset, bottom))
+    return (min(b[0] for b in boxes), min(b[1] for b in boxes), max(b[2] for b in boxes), max(b[3] for b in boxes))
 
 def wrapText(text : str, font : ImageFont, maxWidth : int, maxLines : int):
     parts = text.split(" ")

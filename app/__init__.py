@@ -41,6 +41,7 @@ DUE_DATE_FONT_SIZE = int(getenv("DUE_DATE_FONT_SIZE", "30"))
 ENDLESS_MARGIN = int(getenv("ENDLESS_MARGIN", "10"))
 # about 2mm at 300dpi
 RIGHT_MARGIN = int(getenv("RIGHT_MARGIN", "24"))
+BOLD_DATES = getenv("BOLD_DATES", "true").strip().lower() in ["1", "true", "yes", "on"]
 PURCHASED_DATE_PREFIX = getenv("PURCHASED_DATE_PREFIX", "Purchased:").strip()
 OPENED_DATE_PREFIX = getenv("OPENED_DATE_PREFIX", "Opened:").strip()
 # unset means print due_date exactly as given (Grocy sends "DD: <date>")
@@ -125,18 +126,24 @@ def formatDate(text):
     return DATE_PATTERN.sub(replace, text)
 
 def formatDueDate(dueDate, entry):
-    """Swap Grocy's "DD: <date>" prefix for DUE_DATE_PREFIX, when it's set."""
+    """
+    The due date line as (prefix, date).
+    Swaps Grocy's "DD: <date>" prefix for DUE_DATE_PREFIX, when it's set.
+    """
     if not dueDate:
-        return dueDate
-    if DUE_DATE_PREFIX is None:
-        return formatDate(dueDate)
+        return None
     match = DATE_PATTERN.search(dueDate)
+    if DUE_DATE_PREFIX is None:
+        # print it as given, only the date part is reformatted (and bold)
+        if not match:
+            return (dueDate, "")
+        return (dueDate[:match.start()].strip(), formatDate(dueDate[match.start():]))
     # no date in the text (e.g. just "DD"), fall back to the stock entry's due date
     day = match.group(0) if match else grocy.text(entry.get("best_before_date"))[:10]
     if not day:
         # not something we understand, leave it alone
-        return dueDate
-    return ' '.join(filter(None, [DUE_DATE_PREFIX, formatDate(day)]))
+        return (dueDate, "")
+    return (DUE_DATE_PREFIX, formatDate(day))
 
 def createLabel(params, freshEntry = None):
     entry = freshEntry or params["stockEntry"]
@@ -146,14 +153,14 @@ def createLabel(params, freshEntry = None):
     # top to bottom order on the label, due date stays at the very bottom
     dates = []
     if purchasedDate:
-        dates.append(' '.join(filter(None, [PURCHASED_DATE_PREFIX, purchasedDate])))
+        dates.append((PURCHASED_DATE_PREFIX, purchasedDate))
     if openedDate:
-        dates.append(' '.join(filter(None, [OPENED_DATE_PREFIX, openedDate])))
+        dates.append((OPENED_DATE_PREFIX, openedDate))
     dueDate = formatDueDate(params["dueDate"], entry)
     if dueDate:
         dates.append(dueDate)
 
-    return createLabelImage(label_spec.dots_printable, ENDLESS_MARGIN, params["name"], nameFont, NAME_FONT_SIZE, NAME_MAX_LINES, createBarcode(params["barcode"], BARCODE_FORMAT), dates, ddFont, RIGHT_MARGIN)
+    return createLabelImage(label_spec.dots_printable, ENDLESS_MARGIN, params["name"], nameFont, NAME_FONT_SIZE, NAME_MAX_LINES, createBarcode(params["barcode"], BARCODE_FORMAT), dates, ddFont, RIGHT_MARGIN, BOLD_DATES)
 
 # one label at a time, the delayed prints run on their own threads
 printLock = threading.Lock()

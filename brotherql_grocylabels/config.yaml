@@ -1,5 +1,5 @@
 name: Brother QL Grocy Labels
-version: "0.9.0"
+version: "0.10.0"
 slug: brotherql_grocylabels
 description: Print Grocy labels on a Brother QL label printer
 url: https://github.com/sabourinj/brotherql_grocylabels
@@ -39,6 +39,7 @@ options:
   opened_date_prefix: "Opened:"
   due_date_prefix: "Due:"
   date_format: "YYYY-MM-DD"
+  bold_dates: true
   grocy_lookup_delay: 3
 schema:
   label_size: str
@@ -55,6 +56,7 @@ schema:
   purchased_date_prefix: str?
   opened_date_prefix: str?
   due_date_prefix: str?
+  bold_dates: bool
   date_format: "list(YYYY-MM-DD|MM/DD/YYYY|DD/MM/YYYY|MM/DD/YY|DD.MM.YYYY|Mon D, YYYY|D Mon YYYY)"
   grocy_url: url?
   grocy_api_key: password?

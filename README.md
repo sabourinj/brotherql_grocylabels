@@ -57,6 +57,7 @@ The label size and printer are configured via environmental variables. You can a
 | PURCHASED_DATE_PREFIX | `Purchased:`       | Text printed (plus a space) before `purchased_date`. Set it empty to print the value as-is    |
 | OPENED_DATE_PREFIX | `Opened:`             | Text printed (plus a space) before `opened_date`. Set it empty to print the value as-is       |
 | DUE_DATE_PREFIX    | *(unset)*             | Replaces the prefix on `due_date` (Grocy sends `DD: <date>`), plus a space. Unset prints `due_date` as given, empty prints just the date |
+| BOLD_DATES         | `true`                | Print the dates in bold (the prefixes stay regular)                                           |
 | DATE_FORMAT        | `YYYY-MM-DD`          | How dates are printed: `YYYY-MM-DD`, `MM/DD/YYYY`, `DD/MM/YYYY`, `MM/DD/YY`, `DD.MM.YYYY`, `Mon D, YYYY`, `D Mon YYYY`, or any [strftime](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes) pattern |
 | GROCY_URL          |                       | Optional, Grocy's address e.g. `http://192.168.1.10:9192`. See [Grocy API lookup](#grocy-api-lookup) |
 | GROCY_API_KEY      |                       | Optional, a Grocy API key, needed with `GROCY_URL`                                            |

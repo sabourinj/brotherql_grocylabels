@@ -1,3 +1,7 @@
+# 0.10.0
+
+- Dates are printed in bold, the prefixes before them stay regular. Turn it off with `BOLD_DATES=false` (add-on option `bold_dates`)
+
 # 0.9.0
 
 - Added `DATE_FORMAT` (add-on option `date_format`) to choose how dates are printed, e.g. `MM/DD/YYYY` or `Mon D, YYYY`
