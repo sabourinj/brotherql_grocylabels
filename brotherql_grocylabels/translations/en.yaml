@@ -1,0 +1,36 @@
+configuration:
+  label_size:
+    name: Label size
+    description: Label identifier from brother_ql, e.g. 62x29 for die-cut or 62 for endless.
+  printer_model:
+    name: Printer model
+    description: Printer model as brother_ql names it, e.g. QL-700 or QL-820NWB.
+  printer_path:
+    name: Printer path
+    description: "file:///dev/usb/lp0 for USB, tcp://192.168.1.50 for network printers, or usb://0x04f9:0x2042 for raw USB."
+  barcode_format:
+    name: Barcode format
+    description: Datamatrix fits small labels better, QRCode scans more easily.
+  name_font:
+    name: Name font
+  name_font_size:
+    name: Name font size
+  name_max_lines:
+    name: Name max lines
+    description: Most lines the product name can use. Fewer are used on die-cut labels if the dates need the room.
+  due_date_font:
+    name: Date font
+    description: Font for the due, purchased and opened dates.
+  due_date_font_size:
+    name: Date font size
+  endless_margin:
+    name: Endless label margin
+    description: Top and bottom margin for endless labels.
+  purchased_date_prefix:
+    name: Purchased date prefix
+    description: Text printed before purchased_date. Leave blank to print the date on its own.
+  opened_date_prefix:
+    name: Opened date prefix
+    description: Text printed before opened_date. Leave blank to print the date on its own.
+network:
+  8000/tcp: Label web service (Grocy webhook target)

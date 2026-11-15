@@ -9,6 +9,20 @@ barcode reader or by the [Android App](https://github.com/patzly/grocy-android).
 
 Only die-cut labels are supported as I don't have any endless rolls to test with.
 
+## Home Assistant Add-on
+
+This repository is also a Home Assistant add-on repository (needs Home Assistant OS or Supervised).
+
+1. In Home Assistant go to **Settings → Add-ons → Add-on Store**, open the **⋮** menu, choose **Repositories**
+   and add `https://github.com/sabourinj/brotherql_grocylabels`.
+2. Install **Brother QL Grocy Labels**, set the printer options on its **Configuration** tab and start it.
+
+The add-on options match the environment variables below, in lower case. Setup details are in [the add-on docs](brotherql_grocylabels/DOCS.md).
+
+To release a new add-on version: bump `version` in [brotherql_grocylabels/config.yaml](brotherql_grocylabels/config.yaml),
+merge to `main` and push a matching tag (e.g. `v0.6.0`). The GitHub workflow builds the image and publishes it to
+`ghcr.io/sabourinj/brotherql_grocylabels` with that version, which is what the add-on installs.
+
 ## Connecting Grocy
 
 Once you have this running somewhere update your config at `app/data/config.php` to match the following. Presuming that you have this running on localhost at port 8000.
@@ -39,8 +53,8 @@ The label size and printer are configured via environmental variables. You can a
 | DUE_DATE_FONT      | NotoSerif-Regular.ttf | The file name of the font in the fonts directory, used for all dates                          |
 | DUE_DATE_FONT_SIZE | 30                    | The size of that font                                                                         |
 | ENDLESS_MARGIN     | 10                    | The top & bottom margin to add when using endless labels                                      |
-| PURCHASED_DATE_PREFIX | `Purchased: `      | Text printed before `purchased_date`. Set it empty to print the value as-is                   |
-| OPENED_DATE_PREFIX | `Opened: `            | Text printed before `opened_date`. Set it empty to print the value as-is                      |
+| PURCHASED_DATE_PREFIX | `Purchased:`       | Text printed (plus a space) before `purchased_date`. Set it empty to print the value as-is    |
+| OPENED_DATE_PREFIX | `Opened:`             | Text printed (plus a space) before `opened_date`. Set it empty to print the value as-is       |
 
 Included fonts are `NotoSans-Regular.ttf` and `NotoSerif-Regular.ttf`
 

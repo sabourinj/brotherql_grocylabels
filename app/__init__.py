@@ -1,5 +1,6 @@
+import json
 from io import BytesIO
-from os import path, getenv
+from os import path, getenv, environ
 from flask import Flask, Response, request
 from PIL import Image, ImageFont
 from dotenv import load_dotenv
@@ -9,6 +10,18 @@ from brother_ql.backends import guess_backend, backend_factory
 from app.imaging import createBarcode, createLabelImage
 
 load_dotenv()
+
+# When running as a Home Assistant add-on the settings come from the add-on options,
+# option names are the lower case versions of the environment variables below.
+# Environment variables still take priority if both are set.
+OPTIONS_FILE = getenv("OPTIONS_FILE", "/data/options.json")
+if path.isfile(OPTIONS_FILE):
+    with open(OPTIONS_FILE, encoding="utf-8") as f:
+        for (key, value) in json.load(f).items():
+            environ.setdefault(key.upper(), str(value))
+    # blank optional options are left out of the file, which means print the date with no prefix
+    environ.setdefault("PURCHASED_DATE_PREFIX", "")
+    environ.setdefault("OPENED_DATE_PREFIX", "")
 
 LABEL_SIZE = getenv("LABEL_SIZE", "62x29")
 PRINTER_MODEL = getenv("PRINTER_MODEL", "QL-500")
@@ -20,8 +33,8 @@ NAME_MAX_LINES = int(getenv("NAME_MAX_LINES", "4"))
 DUE_DATE_FONT =  getenv("DUE_DATE_FONT", "NotoSerif-Regular.ttf")
 DUE_DATE_FONT_SIZE = int(getenv("DUE_DATE_FONT_SIZE", "30"))
 ENDLESS_MARGIN = int(getenv("ENDLESS_MARGIN", "10"))
-PURCHASED_DATE_PREFIX = getenv("PURCHASED_DATE_PREFIX", "Purchased: ")
-OPENED_DATE_PREFIX = getenv("OPENED_DATE_PREFIX", "Opened: ")
+PURCHASED_DATE_PREFIX = getenv("PURCHASED_DATE_PREFIX", "Purchased:").strip()
+OPENED_DATE_PREFIX = getenv("OPENED_DATE_PREFIX", "Opened:").strip()
 
 selected_backend = guess_backend(PRINTER_PATH)
 BACKEND_CLASS = backend_factory(selected_backend)['backend_class']
@@ -59,9 +72,9 @@ def get_params():
     # top to bottom order on the label, due date stays at the very bottom
     dates = []
     if purchasedDate:
-        dates.append(PURCHASED_DATE_PREFIX + purchasedDate)
+        dates.append(' '.join(filter(None, [PURCHASED_DATE_PREFIX, purchasedDate])))
     if openedDate:
-        dates.append(OPENED_DATE_PREFIX + openedDate)
+        dates.append(' '.join(filter(None, [OPENED_DATE_PREFIX, openedDate])))
     if dueDate:
         dates.append(dueDate)
 

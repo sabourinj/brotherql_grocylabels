@@ -1,0 +1,51 @@
+name: Brother QL Grocy Labels
+version: "0.6.0"
+slug: brotherql_grocylabels
+description: Print Grocy labels on a Brother QL label printer
+url: https://github.com/sabourinj/brotherql_grocylabels
+# prebuilt multi-arch image, published by .github/workflows/docker-image.yml when a v* tag is pushed
+image: ghcr.io/sabourinj/brotherql_grocylabels
+arch:
+  - amd64
+  - aarch64
+  - armv7
+startup: application
+boot: auto
+ports:
+  8000/tcp: 8000
+ports_description:
+  8000/tcp: Label web service (Grocy webhook target)
+# USB printers: /dev/usb/lp* for file:// printer paths, the raw USB bus for usb:// printer paths.
+# Device paths that don't exist on the host are skipped.
+usb: true
+devices:
+  - /dev/usb/lp0
+  - /dev/usb/lp1
+  - /dev/usb/lp2
+  - /dev/usb/lp3
+options:
+  label_size: "62x29"
+  printer_model: QL-500
+  printer_path: file:///dev/usb/lp0
+  barcode_format: Datamatrix
+  name_font: NotoSerif-Regular.ttf
+  name_font_size: 48
+  name_max_lines: 4
+  due_date_font: NotoSerif-Regular.ttf
+  due_date_font_size: 30
+  endless_margin: 10
+  purchased_date_prefix: "Purchased:"
+  opened_date_prefix: "Opened:"
+schema:
+  label_size: str
+  printer_model: str
+  printer_path: str
+  barcode_format: list(Datamatrix|QRCode)
+  name_font: list(NotoSerif-Regular.ttf|NotoSans-Regular.ttf)
+  name_font_size: int(8,200)
+  name_max_lines: int(1,10)
+  due_date_font: list(NotoSerif-Regular.ttf|NotoSans-Regular.ttf)
+  due_date_font_size: int(8,200)
+  endless_margin: int(0,100)
+  purchased_date_prefix: str?
+  opened_date_prefix: str?
