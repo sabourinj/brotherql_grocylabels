@@ -1,4 +1,6 @@
 import json
+import threading
+import time
 from io import BytesIO
 from os import path, getenv, environ
 from flask import Flask, Response, request
@@ -8,6 +10,7 @@ from brother_ql.labels import ALL_LABELS, Color
 from brother_ql import BrotherQLRaster, create_label
 from brother_ql.backends import guess_backend, backend_factory
 from app.imaging import createBarcode, createLabelImage
+from app import grocy
 
 load_dotenv()
 
@@ -35,6 +38,11 @@ DUE_DATE_FONT_SIZE = int(getenv("DUE_DATE_FONT_SIZE", "30"))
 ENDLESS_MARGIN = int(getenv("ENDLESS_MARGIN", "10"))
 PURCHASED_DATE_PREFIX = getenv("PURCHASED_DATE_PREFIX", "Purchased:").strip()
 OPENED_DATE_PREFIX = getenv("OPENED_DATE_PREFIX", "Opened:").strip()
+# optional, lets labels use the stock entry as Grocy has it after the webhook (see README)
+GROCY_URL = getenv("GROCY_URL", "").strip()
+GROCY_API_KEY = getenv("GROCY_API_KEY", "").strip()
+GROCY_LOOKUP_DELAY = float(getenv("GROCY_LOOKUP_DELAY", "3"))
+GROCY_LOOKUP = bool(GROCY_URL and GROCY_API_KEY)
 
 selected_backend = guess_backend(PRINTER_PATH)
 BACKEND_CLASS = backend_factory(selected_backend)['backend_class']
@@ -52,22 +60,41 @@ def home_route():
     return "Label %s, %s"%(label_spec.identifier, label_spec.name)
 
 def get_params():
-    source = request.form if request.method == "POST" else request.args
+    if request.is_json:
+        source = request.get_json(silent = True) or {}
+    else:
+        source = request.form if request.method == "POST" else request.args
 
     name = ""
-    if 'product' in source:
-        name = source['product']
-    if 'battery' in request.form:
-        name = source['battery']
-    if 'chore' in request.form:
-        name = source['chore']
-    if 'recipe' in request.form:
-        name = source['recipe']
-    
-    barcode = source['grocycode'] if 'grocycode' in source else ''
-    dueDate = source['due_date'] if 'due_date' in source else ''
-    purchasedDate = source['purchased_date'] if 'purchased_date' in source else ''
-    openedDate = source['opened_date'] if 'opened_date' in source else ''
+    for key in ["product", "battery", "chore", "recipe"]:
+        if key in source:
+            name = grocy.text(source[key])
+
+    return {
+        "name": name,
+        "barcode": grocy.text(source.get("grocycode")),
+        "dueDate": grocy.text(source.get("due_date")),
+        # given directly, these win over anything from Grocy
+        "purchasedDate": grocy.text(source.get("purchased_date")),
+        "openedDate": grocy.text(source.get("opened_date")),
+        # sent by Grocy's own stock label webhook
+        "stockEntry": grocy.stockEntryFromRequest(source),
+    }
+
+def lookupStockEntry(params):
+    """Fresh copy of the stock entry from the Grocy API, or None if not configured / not possible."""
+    if not GROCY_LOOKUP or not grocy.canLookup(params["stockEntry"], params["barcode"]):
+        return None
+    try:
+        return grocy.fetchStockEntry(GROCY_URL, GROCY_API_KEY, params["stockEntry"], params["barcode"])
+    except Exception as e:
+        app.logger.warning("Grocy lookup failed, using the webhook data instead: %s", e)
+        return None
+
+def createLabel(params, freshEntry = None):
+    entry = freshEntry or params["stockEntry"]
+    purchasedDate = params["purchasedDate"] or grocy.text(entry.get("purchased_date"))[:10]
+    openedDate = params["openedDate"] or grocy.text(entry.get("opened_date"))[:10]
 
     # top to bottom order on the label, due date stays at the very bottom
     dates = []
@@ -75,29 +102,45 @@ def get_params():
         dates.append(' '.join(filter(None, [PURCHASED_DATE_PREFIX, purchasedDate])))
     if openedDate:
         dates.append(' '.join(filter(None, [OPENED_DATE_PREFIX, openedDate])))
-    if dueDate:
-        dates.append(dueDate)
+    if params["dueDate"]:
+        dates.append(params["dueDate"])
 
-    return (name, barcode, dates)
+    return createLabelImage(label_spec.dots_printable, ENDLESS_MARGIN, params["name"], nameFont, NAME_FONT_SIZE, NAME_MAX_LINES, createBarcode(params["barcode"], BARCODE_FORMAT), dates, ddFont)
+
+# one label at a time, the delayed prints run on their own threads
+printLock = threading.Lock()
+
+def printLabel(params, freshEntry = None):
+    label = createLabel(params, freshEntry)
+    with printLock:
+        sendToPrinter(label)
+
+def delayedPrint(params):
+    # Grocy sends the webhook before it saves the stock entry (e.g. when opening a product)
+    # and waits for the reply, so give it time to finish before looking the entry up
+    try:
+        time.sleep(GROCY_LOOKUP_DELAY)
+        printLabel(params, lookupStockEntry(params))
+    except Exception:
+        app.logger.exception("Printing label failed")
 
 @app.route("/print", methods=["GET", "POST"])
 def print_route():
-    (name, barcode, dates) = get_params();
+    params = get_params()
 
-    label = createLabelImage(label_spec.dots_printable, ENDLESS_MARGIN, name, nameFont, NAME_FONT_SIZE, NAME_MAX_LINES, createBarcode(barcode, BARCODE_FORMAT), dates, ddFont)
+    if GROCY_LOOKUP and grocy.canLookup(params["stockEntry"], params["barcode"]):
+        # reply straight away, Grocy only waits 2 seconds for webhooks
+        threading.Thread(target = delayedPrint, args = (params,), daemon = True).start()
+        return Response("OK", 200)
 
-    buf = BytesIO()
-    label.save(buf, format="PNG")
-    buf.seek(0)
-    sendToPrinter(label)
-
+    printLabel(params)
     return Response("OK", 200)
 
-@app.route("/image")
-def test():
-    (name, barcode, dates) = get_params();
+@app.route("/image", methods=["GET", "POST"])
+def image_route():
+    params = get_params()
 
-    img = createLabelImage(label_spec.dots_printable, ENDLESS_MARGIN, name, nameFont, NAME_FONT_SIZE, NAME_MAX_LINES, createBarcode(barcode, BARCODE_FORMAT), dates, ddFont)
+    img = createLabel(params, lookupStockEntry(params))
     buf = BytesIO()
     img.save(buf, format="PNG")
     buf.seek(0)
