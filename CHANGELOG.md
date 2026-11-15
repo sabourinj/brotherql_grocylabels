@@ -1,7 +1,10 @@
-# Unreleased
+# 0.6.0
 
 - Added optional `purchased_date` and `opened_date` parameters, printed above the due date
 - Added `PURCHASED_DATE_PREFIX` and `OPENED_DATE_PREFIX` settings
+- Packaged as a Home Assistant add-on, settings can come from `/data/options.json`
+- Docker image is now published to `ghcr.io/sabourinj/brotherql_grocylabels`
+- Added `libusb` to the image for `usb://` printer paths
 - Name text uses fewer lines on die-cut labels when it would otherwise overlap the dates
 - Fixed `DUE_DATE_FONT` being read from `NAME_FONT`
 
