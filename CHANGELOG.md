@@ -1,3 +1,10 @@
+# 0.7.0
+
+- Purchased and opened dates are read from the `stock_entry` Grocy sends with stock label webhooks, so Grocy can call `/print` directly
+- Requests can be sent as JSON (Grocy's `LABEL_PRINTER_HOOK_JSON`)
+- Optional `GROCY_URL` / `GROCY_API_KEY` lookup so labels reprinted on opening get the opened date
+- `battery`, `chore` and `recipe` names now work for GET requests too
+
 # 0.6.0
 
 - Added optional `purchased_date` and `opened_date` parameters, printed above the due date

@@ -17,20 +17,34 @@ Labels show the product name, a grocycode barcode, and up to three dates: purcha
 
 ## Connecting Grocy
 
-Point Grocy's label printer webhook at this add-on, in Grocy's `config.php`:
+Point Grocy's label printer webhook straight at this add-on, in Grocy's `config.php`:
 
 ```php
 Setting('LABEL_PRINTER_WEBHOOK', 'http://<address>:8000/print');
 Setting('LABEL_PRINTER_RUN_SERVER', true);
 Setting('LABEL_PRINTER_PARAMS', []);
-Setting('LABEL_PRINTER_HOOK_JSON', false);
+Setting('LABEL_PRINTER_HOOK_JSON', true);
 Setting('FEATURE_FLAG_LABEL_PRINTER', true);
 ```
 
 For `<address>`, use either:
 
-- the **Hostname** shown on this add-on's **Info** tab, if Grocy also runs as a Home Assistant add-on, or
-- the Home Assistant machine's IP address, if Grocy runs somewhere else.
+- the add-on's hostname, if Grocy also runs as a Home Assistant add-on. It's `<repository hash>-brotherql-grocylabels`,
+  shown as **Hostname** on this add-on's **Info** tab, or
+- the Home Assistant machine's IP address, which works from anywhere on your network.
+
+Grocy sends the stock entry with each stock label, so the purchased and opened dates are printed without
+any extra setup. `LABEL_PRINTER_HOOK_JSON` can be `true` or `false`, both work.
+
+### Opened dates on labels reprinted when opening
+
+If a product has **Auto reprint stock entry label** turned on, Grocy reprints its label when you open it.
+Grocy sends that webhook just *before* it saves the item as opened, so on its own the label has no opened date.
+
+To fix that, set **Grocy URL** and **Grocy API key** (create one in Grocy under the user menu, **Manage API keys**).
+The add-on then replies to Grocy straight away, waits **Grocy lookup delay** seconds, reads the stock entry
+from the Grocy API and prints. You can use the same URL and API key as Home Assistant's Grocy integration.
+If the lookup fails the label is printed from the webhook data and the error is in the add-on log.
 
 ## Parameters
 
@@ -43,9 +57,9 @@ For `<address>`, use either:
 | `due_date`       | printed at the bottom right, as given (Grocy sends `DD: <date>`) |
 | `purchased_date` | printed above the due date, after the purchased date prefix |
 | `opened_date`    | printed above the due date, after the opened date prefix    |
+| `stock_entry`    | sent by Grocy, its `purchased_date` and `opened_date` are used when the two above aren't given |
 
-Grocy's built-in webhook only sends `due_date`. To print purchased or opened dates, call `/print`
-yourself, for example from a Home Assistant `rest_command` using values from the Grocy integration.
+Parameters can also be sent as a JSON body.
 
 ## Security
 

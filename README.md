@@ -55,6 +55,9 @@ The label size and printer are configured via environmental variables. You can a
 | ENDLESS_MARGIN     | 10                    | The top & bottom margin to add when using endless labels                                      |
 | PURCHASED_DATE_PREFIX | `Purchased:`       | Text printed (plus a space) before `purchased_date`. Set it empty to print the value as-is    |
 | OPENED_DATE_PREFIX | `Opened:`             | Text printed (plus a space) before `opened_date`. Set it empty to print the value as-is       |
+| GROCY_URL          |                       | Optional, Grocy's address e.g. `http://192.168.1.10:9192`. See [Grocy API lookup](#grocy-api-lookup) |
+| GROCY_API_KEY      |                       | Optional, a Grocy API key, needed with `GROCY_URL`                                            |
+| GROCY_LOOKUP_DELAY | 3                     | Seconds to wait before looking up the stock entry in Grocy                                    |
 
 Included fonts are `NotoSans-Regular.ttf` and `NotoSerif-Regular.ttf`
 
@@ -81,14 +84,24 @@ POST or GET accepted.
 | due_date  | the text at the bottom of the label |
 | purchased_date | purchased date, printed above the due date with `PURCHASED_DATE_PREFIX` in front |
 | opened_date    | opened date, printed above the due date with `OPENED_DATE_PREFIX` in front       |
+| stock_entry    | sent by Grocy with stock labels, its `purchased_date` and `opened_date` are used when the two above aren't given |
 
-The name will use whichever parameter is given.
+The name will use whichever parameter is given. Parameters can also be sent as a JSON body (`LABEL_PRINTER_HOOK_JSON` set to `true` in Grocy).
 
 The dates are stacked in the bottom right corner in the order purchased, opened, due, with the due date always at the bottom. Any that are missing are left out.
 On die-cut labels the name will use fewer lines if needed so it doesn't run into the dates.
 
-Grocy's built-in label webhook only sends `due_date`, so `purchased_date` and `opened_date` need to come from your own call to `/print` (e.g. a script or automation using the Grocy API).
-For example: `/print?product=Milk&grocycode=grcy:p:1&due_date=DD:%202026-11-21&purchased_date=2026-11-14&opened_date=2026-11-15`
+Grocy's label webhook includes the stock entry, so purchased and opened dates print with no extra setup.
+You can also pass them yourself, for example: `/print?product=Milk&grocycode=grcy:p:1&due_date=DD:%202026-11-21&purchased_date=2026-11-14&opened_date=2026-11-15`
+
+### Grocy API lookup
+
+When a product has "Auto reprint stock entry label" turned on, Grocy reprints the label when it's opened, but sends
+the webhook before it saves the stock entry as opened, so the label would have no opened date.
+
+Set `GROCY_URL` and `GROCY_API_KEY` to fix this. Stock labels are then printed in the background: `/print` replies
+straight away, waits `GROCY_LOOKUP_DELAY` seconds, reads the stock entry from the Grocy API, and prints from that.
+`/image` does the lookup without waiting. If the lookup fails, the webhook data is used and a warning is logged.
 
 ## Running
 
