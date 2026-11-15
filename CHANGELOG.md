@@ -1,3 +1,7 @@
+# 0.9.0
+
+- Added `DATE_FORMAT` (add-on option `date_format`) to choose how dates are printed, e.g. `MM/DD/YYYY` or `Mon D, YYYY`
+
 # 0.8.1
 
 - Added `RIGHT_MARGIN` (default 24 dots, about 2mm) so the dates and name stay clear of the right edge of the label

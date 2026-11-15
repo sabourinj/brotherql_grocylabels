@@ -1,5 +1,6 @@
 import json
 import re
+from datetime import date
 import threading
 import time
 from io import BytesIO
@@ -47,6 +48,19 @@ DUE_DATE_PREFIX = getenv("DUE_DATE_PREFIX")
 if DUE_DATE_PREFIX is not None:
     DUE_DATE_PREFIX = DUE_DATE_PREFIX.strip()
 # optional, lets labels use the stock entry as Grocy has it after the webhook (see README)
+# how dates are printed, one of DATE_FORMATS or a strftime pattern
+MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+DATE_FORMATS = {
+    "YYYY-MM-DD": lambda d: d.strftime("%Y-%m-%d"),
+    "MM/DD/YYYY": lambda d: d.strftime("%m/%d/%Y"),
+    "DD/MM/YYYY": lambda d: d.strftime("%d/%m/%Y"),
+    "MM/DD/YY": lambda d: d.strftime("%m/%d/%y"),
+    "DD.MM.YYYY": lambda d: d.strftime("%d.%m.%Y"),
+    "Mon D, YYYY": lambda d: "%s %d, %d" % (MONTHS[d.month - 1], d.day, d.year),
+    "D Mon YYYY": lambda d: "%d %s %d" % (d.day, MONTHS[d.month - 1], d.year),
+}
+DATE_FORMAT = getenv("DATE_FORMAT", "YYYY-MM-DD").strip() or "YYYY-MM-DD"
+formatDateValue = DATE_FORMATS.get(DATE_FORMAT, lambda d: d.strftime(DATE_FORMAT))
 GROCY_URL = getenv("GROCY_URL", "").strip()
 GROCY_API_KEY = getenv("GROCY_API_KEY", "").strip()
 GROCY_LOOKUP_DELAY = float(getenv("GROCY_LOOKUP_DELAY", "3"))
@@ -99,22 +113,35 @@ def lookupStockEntry(params):
         app.logger.warning("Grocy lookup failed, using the webhook data instead: %s", e)
         return None
 
+DATE_PATTERN = re.compile(r"\d{4}-\d{2}-\d{2}")
+
+def formatDate(text):
+    """Rewrite any YYYY-MM-DD dates in the text in DATE_FORMAT."""
+    def replace(match):
+        try:
+            return formatDateValue(date.fromisoformat(match.group(0)))
+        except ValueError:
+            return match.group(0)
+    return DATE_PATTERN.sub(replace, text)
+
 def formatDueDate(dueDate, entry):
     """Swap Grocy's "DD: <date>" prefix for DUE_DATE_PREFIX, when it's set."""
-    if DUE_DATE_PREFIX is None or not dueDate:
+    if not dueDate:
         return dueDate
-    match = re.search(r"\d{4}-\d{2}-\d{2}", dueDate)
+    if DUE_DATE_PREFIX is None:
+        return formatDate(dueDate)
+    match = DATE_PATTERN.search(dueDate)
     # no date in the text (e.g. just "DD"), fall back to the stock entry's due date
-    date = match.group(0) if match else grocy.text(entry.get("best_before_date"))[:10]
-    if not date:
+    day = match.group(0) if match else grocy.text(entry.get("best_before_date"))[:10]
+    if not day:
         # not something we understand, leave it alone
         return dueDate
-    return ' '.join(filter(None, [DUE_DATE_PREFIX, date]))
+    return ' '.join(filter(None, [DUE_DATE_PREFIX, formatDate(day)]))
 
 def createLabel(params, freshEntry = None):
     entry = freshEntry or params["stockEntry"]
-    purchasedDate = params["purchasedDate"] or grocy.text(entry.get("purchased_date"))[:10]
-    openedDate = params["openedDate"] or grocy.text(entry.get("opened_date"))[:10]
+    purchasedDate = formatDate(params["purchasedDate"] or grocy.text(entry.get("purchased_date"))[:10])
+    openedDate = formatDate(params["openedDate"] or grocy.text(entry.get("opened_date"))[:10])
 
     # top to bottom order on the label, due date stays at the very bottom
     dates = []

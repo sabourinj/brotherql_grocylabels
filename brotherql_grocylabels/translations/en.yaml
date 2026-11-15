@@ -38,6 +38,9 @@ configuration:
   due_date_prefix:
     name: Due date prefix
     description: Replaces the "DD:" Grocy puts before the due date. Leave blank to print the date on its own.
+  date_format:
+    name: Date format
+    description: "How the purchased, opened and due dates are printed, e.g. for 20 November 2026: 2026-11-20, 11/20/2026, 20/11/2026, 11/20/26, 20.11.2026, Nov 20, 2026 or 20 Nov 2026."
   grocy_url:
     name: Grocy URL
     description: "Optional. Grocy's address, e.g. http://192.168.1.10:9192. With an API key set, labels use the stock entry as Grocy saved it, so labels reprinted on opening get the opened date."
