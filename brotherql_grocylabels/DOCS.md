@@ -54,7 +54,7 @@ If the lookup fails the label is printed from the webhook data and the error is 
 | ---------------- | ----------------------------------------------------- |
 | `product`, `battery`, `chore`, `recipe` | the name, whichever is given   |
 | `grocycode`      | the barcode                                           |
-| `due_date`       | printed at the bottom right, as given (Grocy sends `DD: <date>`) |
+| `due_date`       | printed at the bottom right. Grocy sends `DD: <date>`, the `DD:` is replaced by the due date prefix |
 | `purchased_date` | printed above the due date, after the purchased date prefix |
 | `opened_date`    | printed above the due date, after the opened date prefix    |
 | `stock_entry`    | sent by Grocy, its `purchased_date` and `opened_date` are used when the two above aren't given |

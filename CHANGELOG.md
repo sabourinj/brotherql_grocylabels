@@ -1,3 +1,8 @@
+# 0.8.0
+
+- Added `DUE_DATE_PREFIX` to replace Grocy's `DD:` before the due date (add-on default `Due:`)
+- If the due date text has no date in it, the stock entry's due date is used
+
 # 0.7.0
 
 - Purchased and opened dates are read from the `stock_entry` Grocy sends with stock label webhooks, so Grocy can call `/print` directly
