@@ -17,9 +17,11 @@ BARCODE_FORMAT = getenv("BARCODE_FORMAT", "Datamatrix")
 NAME_FONT = getenv("NAME_FONT", "NotoSerif-Regular.ttf")
 NAME_FONT_SIZE = int(getenv("NAME_FONT_SIZE", "48"))
 NAME_MAX_LINES = int(getenv("NAME_MAX_LINES", "4"))
-DUE_DATE_FONT =  getenv("NAME_FONT", "NotoSerif-Regular.ttf")
+DUE_DATE_FONT =  getenv("DUE_DATE_FONT", "NotoSerif-Regular.ttf")
 DUE_DATE_FONT_SIZE = int(getenv("DUE_DATE_FONT_SIZE", "30"))
 ENDLESS_MARGIN = int(getenv("ENDLESS_MARGIN", "10"))
+PURCHASED_DATE_PREFIX = getenv("PURCHASED_DATE_PREFIX", "Purchased: ")
+OPENED_DATE_PREFIX = getenv("OPENED_DATE_PREFIX", "Opened: ")
 
 selected_backend = guess_backend(PRINTER_PATH)
 BACKEND_CLASS = backend_factory(selected_backend)['backend_class']
@@ -51,14 +53,25 @@ def get_params():
     
     barcode = source['grocycode'] if 'grocycode' in source else ''
     dueDate = source['due_date'] if 'due_date' in source else ''
+    purchasedDate = source['purchased_date'] if 'purchased_date' in source else ''
+    openedDate = source['opened_date'] if 'opened_date' in source else ''
 
-    return (name, barcode, dueDate)
+    # top to bottom order on the label, due date stays at the very bottom
+    dates = []
+    if purchasedDate:
+        dates.append(PURCHASED_DATE_PREFIX + purchasedDate)
+    if openedDate:
+        dates.append(OPENED_DATE_PREFIX + openedDate)
+    if dueDate:
+        dates.append(dueDate)
+
+    return (name, barcode, dates)
 
 @app.route("/print", methods=["GET", "POST"])
 def print_route():
-    (name, barcode, dueDate) = get_params();
+    (name, barcode, dates) = get_params();
 
-    label = createLabelImage(label_spec.dots_printable, ENDLESS_MARGIN, name, nameFont, NAME_FONT_SIZE, NAME_MAX_LINES, createBarcode(barcode, BARCODE_FORMAT), dueDate, ddFont)
+    label = createLabelImage(label_spec.dots_printable, ENDLESS_MARGIN, name, nameFont, NAME_FONT_SIZE, NAME_MAX_LINES, createBarcode(barcode, BARCODE_FORMAT), dates, ddFont)
 
     buf = BytesIO()
     label.save(buf, format="PNG")
@@ -69,9 +82,9 @@ def print_route():
 
 @app.route("/image")
 def test():
-    (name, barcode, dueDate) = get_params();
+    (name, barcode, dates) = get_params();
 
-    img = createLabelImage(label_spec.dots_printable, ENDLESS_MARGIN, name, nameFont, NAME_FONT_SIZE, NAME_MAX_LINES, createBarcode(barcode, BARCODE_FORMAT), dueDate, ddFont)
+    img = createLabelImage(label_spec.dots_printable, ENDLESS_MARGIN, name, nameFont, NAME_FONT_SIZE, NAME_MAX_LINES, createBarcode(barcode, BARCODE_FORMAT), dates, ddFont)
     buf = BytesIO()
     img.save(buf, format="PNG")
     buf.seek(0)
